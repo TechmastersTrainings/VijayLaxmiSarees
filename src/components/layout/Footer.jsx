@@ -121,6 +121,9 @@ export const Footer = () => {
           <span>
             {social.instagram.followers} on Instagram · {social.youtube.subscribers} on YouTube
           </span>
+          <Link to="/admin" className="footer__admin">
+            Admin
+          </Link>
         </div>
       </div>
     </footer>

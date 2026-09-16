@@ -21,6 +21,7 @@ export const ProductCard = ({ product, eager = false }) => {
 
         <span className="product-card__tags">
           {product.weave && <span className="badge badge--soft">{product.weave}</span>}
+          {product.inStock === false && <span className="badge badge--muted">Out of stock</span>}
         </span>
 
         <button
@@ -34,7 +35,7 @@ export const ProductCard = ({ product, eager = false }) => {
         </button>
 
         <div className="product-card__quick">
-          {product.price ? (
+          {product.price && product.inStock !== false ? (
             <button
               type="button"
               className="btn btn--sm btn--block"

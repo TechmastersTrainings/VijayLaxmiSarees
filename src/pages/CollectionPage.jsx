@@ -1,6 +1,6 @@
 import { useSeo } from '../hooks/useSeo'
 import { getCollection } from '../data/collections'
-import { getProductsByCollection } from '../data/products'
+import { useCatalog } from '../context/CatalogContext'
 import { whatsappMessage } from '../data/business'
 import Breadcrumbs from '../components/common/Breadcrumbs'
 import ProductGrid from '../components/products/ProductGrid'
@@ -14,7 +14,8 @@ import { Link } from 'react-router-dom'
  */
 export const CollectionPage = ({ slug, story }) => {
   const collection = getCollection(slug)
-  const items = getProductsByCollection(slug)
+  const catalog = useCatalog()
+  const items = catalog.products.filter((p) => p.collections.includes(slug))
 
   useSeo({
     title: collection.title,

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useState } from 'react'
-import { getProductById } from '../data/products'
+import { useCatalog } from './CatalogContext'
 
 const CartContext = createContext(null)
 
@@ -41,6 +41,7 @@ const read = () => {
 export const CartProvider = ({ children }) => {
   const [items, dispatch] = useReducer(reducer, [], read)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const catalog = useCatalog()
 
   useEffect(() => {
     try {
@@ -53,9 +54,9 @@ export const CartProvider = ({ children }) => {
   const value = useMemo(() => {
     const lines = items
       .map((l) => {
-        const product = getProductById(l.id)
+        const product = catalog.getProduct(l.id)
         if (!product) return null
-        return { ...product, qty: l.qty, lineTotal: product.price * l.qty }
+        return { ...product, qty: l.qty, lineTotal: (product.price || 0) * l.qty }
       })
       .filter(Boolean)
 
@@ -78,7 +79,7 @@ export const CartProvider = ({ children }) => {
       remove: (id) => dispatch({ type: 'remove', id }),
       clear: () => dispatch({ type: 'clear' }),
     }
-  }, [items, drawerOpen])
+  }, [items, drawerOpen, catalog])
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }

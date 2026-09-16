@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { useSeo } from '../hooks/useSeo'
-import { getProductById, relatedProducts } from '../data/products'
+import { relatedProducts } from '../data/products'
+import { useCatalog } from '../context/CatalogContext'
 import { whatsappMessage } from '../data/business'
 import { formatINR } from '../utils/format'
 import { useCart } from '../context/CartContext'
@@ -14,11 +15,14 @@ import Icon from '../components/common/Icon'
 
 export const ProductDetail = () => {
   const { id } = useParams()
-  const product = getProductById(id)
+  const catalog = useCatalog()
+  const product = catalog.getProduct(id)
   const cart = useCart()
   const wishlist = useWishlist()
 
   const related = relatedProducts(product, 3)
+    .map((p) => catalog.getProduct(p.id))
+    .filter(Boolean)
 
   useSeo({
     title: product ? `${product.name} · Sri Vijaylaxmi Silks` : 'Saree not found',
@@ -112,6 +116,13 @@ export const ProductDetail = () => {
 
               <p className="pd__desc">{product.description}</p>
 
+              {product.inStock === false && (
+                <Notice icon="info">
+                  <strong>Currently out of stock.</strong> Message us on WhatsApp — we can often
+                  arrange it or suggest a close alternative from the store.
+                </Notice>
+              )}
+
               <Notice icon="info">
                 <strong>Catalogue price, not MRP.</strong> This is the price the store has listed
                 publicly. Our team confirms the final price, availability and shipping from Bidar on
@@ -119,13 +130,25 @@ export const ProductDetail = () => {
               </Notice>
 
               <div className="pd__actions">
-                {priceLabel && (
+                {priceLabel && product.inStock !== false ? (
                   <Button
                     onClick={() => cart.add(product.id)}
                     variant="primary"
                     style={{ flex: 1 }}
                   >
                     Add to Bag ({priceLabel})
+                  </Button>
+                ) : (
+                  <Button
+                    href={whatsappMessage(
+                      `Hello Sri Vijaylaxmi Silks, I'm interested in "${product.name}". Please share the current price and availability.`
+                    )}
+                    variant="whatsapp"
+                    style={{ flex: 1 }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Icon name="whatsapp" size={18} /> Enquire on WhatsApp
                   </Button>
                 )}
                 <Button

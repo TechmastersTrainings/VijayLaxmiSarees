@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useSeo } from '../hooks/useSeo'
-import { products, getAllColours, getAllWeaves, getAllCategories } from '../data/products'
+import { getAllColours, getAllWeaves, getAllCategories } from '../data/products'
+import { useCatalog } from '../context/CatalogContext'
 import { filterProducts } from '../utils/search'
 import { useWishlist } from '../context/WishlistContext'
 import Breadcrumbs from '../components/common/Breadcrumbs'
@@ -26,6 +27,7 @@ export const Products = () => {
 
   const [searchParams] = useSearchParams()
   const wishlist = useWishlist()
+  const catalog = useCatalog()
   const wishlistView = searchParams.get('view') === 'wishlist'
 
   const [selected, setSelected] = useState({ colours: [], weaves: [], categories: [] })
@@ -36,12 +38,14 @@ export const Products = () => {
     []
   )
 
-  const base = wishlistView ? products.filter((p) => wishlist.ids.includes(p.id)) : products
+  const base = wishlistView
+    ? catalog.products.filter((p) => wishlist.ids.includes(p.id))
+    : catalog.products
 
   const visible = useMemo(() => {
     let list = filterProducts(base, selected)
-    if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price)
-    if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price)
+    if (sort === 'price-asc') list = [...list].sort((a, b) => (a.price || 0) - (b.price || 0))
+    if (sort === 'price-desc') list = [...list].sort((a, b) => (b.price || 0) - (a.price || 0))
     return list
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base, selected, sort, wishlist.ids])

@@ -4,6 +4,7 @@ import { useSeo } from '../hooks/useSeo'
 import { useCart } from '../context/CartContext'
 import { formatINR } from '../utils/format'
 import { business, whatsappMessage } from '../data/business'
+import { saveOrder } from '../lib/orders'
 import Breadcrumbs from '../components/common/Breadcrumbs'
 import Button from '../components/common/Button'
 import Notice from '../components/common/Notice'
@@ -11,9 +12,10 @@ import Icon from '../components/common/Icon'
 import Reveal from '../components/common/Reveal'
 
 /**
- * Honest checkout. There is no backend and no online payment — the final
- * price, stock and shipping are confirmed and completed with the store on
- * WhatsApp. This page simply composes a well-formed order message.
+ * Honest checkout. No payment is taken online — the final price, stock and
+ * shipping are confirmed with the store on WhatsApp. We also record the order
+ * in the shop's dashboard (when the backend is configured) so nothing is
+ * missed; the WhatsApp message remains the source of truth.
  */
 export const Checkout = () => {
   useSeo({
@@ -33,6 +35,7 @@ export const Checkout = () => {
     notes: '',
   })
   const [error, setError] = useState('')
+  const [sentUrl, setSentUrl] = useState(null)
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
@@ -64,7 +67,13 @@ export const Checkout = () => {
       '',
       'Please confirm the final price, stock and delivery from Bidar. Thank you!',
     ].join('\n')
-    window.open(whatsappMessage(message), '_blank', 'noopener,noreferrer')
+
+    const url = whatsappMessage(message)
+    window.open(url, '_blank', 'noopener,noreferrer')
+    setSentUrl(url)
+
+    // Record a copy for the shop dashboard. Never blocks the WhatsApp flow.
+    saveOrder({ customer: form, items: lines, subtotal, count })
   }
 
   if (lines.length === 0) {
@@ -105,6 +114,23 @@ export const Checkout = () => {
                   The store confirms the final price, stock and shipping before you pay — how and
                   where you prefer.
                 </Notice>
+
+                {sentUrl && (
+                  <div className="checkout-sent">
+                    <Notice icon="check">
+                      <strong>Your order summary is ready.</strong> We opened WhatsApp in a new tab
+                      so you can send it to the store. If it didn't open, tap the button below.
+                    </Notice>
+                    <a
+                      href={sentUrl}
+                      className="btn btn--whatsapp"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Icon name="whatsapp" size={18} /> Open WhatsApp
+                    </a>
+                  </div>
+                )}
 
                 <h1 className="checkout-title" style={{ margin: '1.4rem 0 0.2rem' }}>
                   Your details

@@ -546,12 +546,13 @@
   font-size: var(--fs-xs);
   color: rgba(251, 247, 240, 0.6);
 }
-.footer__disclaimer {
-  font-size: 0.7rem;
-  color: rgba(251, 247, 240, 0.5);
-  padding-bottom: 1.5rem;
-  max-width: 80ch;
-  line-height: 1.6;
+.footer__admin {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.footer__admin:hover {
+  color: var(--cream);
 }
 
 /* ============================================================
