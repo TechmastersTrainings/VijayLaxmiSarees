@@ -1,0 +1,58 @@
+:root {
+  /* ---- Brand colour ---- */
+  --ink: #241417;
+  --ink-soft: #4a3b3d;
+  --ink-muted: #786a6b;
+  --cream: #fbf7f0;
+  --cream-deep: #f3ead9;
+  --paper: #ffffff;
+
+  --maroon: #5c1320;
+  --maroon-deep: #400c16;
+  --wine: #7a2233;
+  --gold: #a97f34;
+  --gold-deep: #8c6726;
+  --gold-soft: #d8bd7e;
+  --gold-pale: #f0e5c9;
+
+  --line: rgba(92, 19, 32, 0.14);
+  --line-strong: rgba(92, 19, 32, 0.28);
+  --shadow-sm: 0 1px 2px rgba(36, 20, 23, 0.05), 0 4px 14px rgba(36, 20, 23, 0.05);
+  --shadow-md: 0 10px 30px rgba(36, 20, 23, 0.09);
+  --shadow-lg: 0 24px 60px rgba(36, 20, 23, 0.16);
+
+  --whatsapp: #1f9d55;
+  --whatsapp-deep: #157a41;
+  --success: #2f6b4f;
+
+  /* ---- Typography ---- */
+  --font-serif: 'Cormorant Garamond', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Jost', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+  --fs-xs: 0.74rem;
+  --fs-sm: 0.84rem;
+  --fs-base: 1rem;
+  --fs-md: 1.12rem;
+  --fs-lg: 1.35rem;
+  --fs-xl: clamp(1.6rem, 1.2rem + 2vw, 2.4rem);
+  --fs-2xl: clamp(2rem, 1.4rem + 3vw, 3.4rem);
+  --fs-3xl: clamp(2.6rem, 1.6rem + 5vw, 5.2rem);
+
+  --tracking-wide: 0.16em;
+  --tracking-wider: 0.28em;
+
+  /* ---- Layout ---- */
+  --container: 1240px;
+  --container-narrow: 880px;
+  --gutter: clamp(1.1rem, 4vw, 3rem);
+  --section-y: clamp(3.6rem, 8vw, 7.5rem);
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --header-h: 76px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur: 0.5s;
+}
