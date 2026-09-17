@@ -1,14 +1,24 @@
 -- ============================================================
--- Sri Vijaylaxmi Silks — backend schema (Supabase / Postgres)
--- Run this once in Supabase Dashboard -> SQL Editor -> New query.
---
--- Access model:
---   * Anonymous visitors may CREATE orders (but never read them).
---   * Login-ed admins (listed in public.admins) may READ/UPDATE orders.
---   * Product price/stock overrides are public to read, admin-only to write.
+-- Sri Vijaylaxmi Silks — full schema with Row-Level Security
+-- Corrected ordering: ALL tables first, then is_admin(),
+-- then RLS policies (policies reference the function).
+-- Paste into Supabase Dashboard -> SQL Editor -> Run.
 -- ============================================================
 
--- Orders placed through the website checkout (also sent to WhatsApp).
+-- UUID generation helper (idempotent)
+create extension if not exists "pgcrypto";
+
+-- ------------------------------------------------------------
+-- TABLES
+-- ------------------------------------------------------------
+
+-- admins: which authenticated users may administer the store
+create table if not exists public.admins (
+  id uuid primary key references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+-- orders: every checkout is recorded here
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
@@ -29,7 +39,18 @@ create table if not exists public.orders (
 create index if not exists orders_created_at_idx on public.orders (created_at desc);
 create index if not exists orders_status_idx on public.orders (status);
 
--- Admin-controlled price / stock overrides for the public catalogue.
+-- enquiries: contact/lead messages from the site
+create table if not exists public.enquiries (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name text,
+  phone text,
+  message text,
+  product_id text,
+  source text not null default 'website'
+);
+
+-- product_overrides: admin price / stock per catalogue item
 create table if not exists public.product_overrides (
   product_id text primary key,
   price integer,
@@ -38,13 +59,9 @@ create table if not exists public.product_overrides (
   updated_at timestamptz not null default now()
 );
 
--- Maps Supabase Auth users allowed to administer the store.
-create table if not exists public.admins (
-  id uuid primary key references auth.users (id) on delete cascade,
-  created_at timestamptz not null default now()
-);
-
--- Helper used by RLS policies. SECURITY DEFINER so it can read public.admins.
+-- ------------------------------------------------------------
+-- ADMIN DETECTION FUNCTION (created AFTER tables exist)
+-- ------------------------------------------------------------
 create or replace function public.is_admin()
 returns boolean
 language sql
@@ -56,51 +73,77 @@ as $$
 $$;
 
 -- ------------------------------------------------------------
--- Row-Level Security
+-- ROW LEVEL SECURITY
 -- ------------------------------------------------------------
-alter table public.orders enable row level security;
-alter table public.product_overrides enable row level security;
 alter table public.admins enable row level security;
+alter table public.orders enable row level security;
+alter table public.enquiries enable row level security;
+alter table public.product_overrides enable row level security;
 
--- Orders: anyone can place one, only admins can read or change them.
+-- ------------------------------------------------------------
+-- POLICIES
+-- ------------------------------------------------------------
+-- orders: admin can read/update; anyone may place an order.
+-- Select is admin-only because orders hold customer details.
+drop policy if exists orders_select_admin on public.orders;
+create policy orders_select_admin on public.orders
+  for select to authenticated
+  using (public.is_admin());
+
 drop policy if exists orders_insert_public on public.orders;
 create policy orders_insert_public on public.orders
   for insert to anon, authenticated
   with check (true);
 
-drop policy if exists orders_admin_read on public.orders;
-create policy orders_admin_read on public.orders
-  for select to authenticated
-  using (public.is_admin());
-
-drop policy if exists orders_admin_update on public.orders;
-create policy orders_admin_update on public.orders
+drop policy if exists orders_update_admin on public.orders;
+create policy orders_update_admin on public.orders
   for update to authenticated
   using (public.is_admin())
   with check (public.is_admin());
 
--- Product overrides: public read (the storefront needs them), admin write.
-drop policy if exists overrides_read_all on public.product_overrides;
-create policy overrides_read_all on public.product_overrides
+-- enquiries: admin reads, anyone sends.
+drop policy if exists enquiries_select_admin on public.enquiries;
+create policy enquiries_select_admin on public.enquiries
+  for select to authenticated
+  using (public.is_admin());
+
+drop policy if exists enquiries_insert_public on public.enquiries;
+create policy enquiries_insert_public on public.enquiries
+  for insert to anon, authenticated
+  with check (true);
+
+-- product_overrides: public reads price/stock, admin writes.
+drop policy if exists overrides_select_public on public.product_overrides;
+create policy overrides_select_public on public.product_overrides
   for select to anon, authenticated
   using (true);
 
-drop policy if exists overrides_admin_write on public.product_overrides;
-create policy overrides_admin_write on public.product_overrides
+drop policy if exists overrides_write_admin on public.product_overrides;
+create policy overrides_write_admin on public.product_overrides
   for all to authenticated
   using (public.is_admin())
   with check (public.is_admin());
 
--- Admins list: only admins may read it. Rows are added manually (see below).
-drop policy if exists admins_admin_read on public.admins;
-create policy admins_admin_read on public.admins
+-- admins: only admins list admin users.
+drop policy if exists admins_select_admin on public.admins;
+create policy admins_select_admin on public.admins
   for select to authenticated
   using (public.is_admin());
 
 -- ============================================================
--- AFTER RUNNING THIS:
---   1. Dashboard -> Authentication -> Users -> "Add user"
---      create the admin login (email + password).
---   2. Copy that user's UID and run:
---        insert into public.admins (id) values ('<PASTE-UID-HERE>');
+-- OPTIONAL open fallback (testing only) — uncomment to let
+-- everyone read orders/enquiries too. Remove before going live.
+-- ============================================================
+-- drop policy if exists orders_select_fallback on public.orders;
+-- create policy orders_select_fallback on public.orders
+--   for select to anon, authenticated using (true);
+-- drop policy if exists enquiries_select_fallback on public.enquiries;
+-- create policy enquiries_select_fallback on public.enquiries
+--   for select to anon, authenticated using (true);
+
+-- ============================================================
+-- AFTER RUNNING: grant admin access.
+--  1. Supabase -> Authentication -> Users -> Add user
+--  2. Copy that user's UID and run:
+--       insert into public.admins (id) values ('<PASTE-UID-HERE>');
 -- ============================================================
