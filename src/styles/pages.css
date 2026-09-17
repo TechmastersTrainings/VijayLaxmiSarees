@@ -894,3 +894,17 @@
     width: 100%;
   }
 }
+
+.btn--danger {
+  background: transparent;
+  color: var(--maroon);
+  border: 1px solid currentColor;
+}
+.btn--danger:hover {
+  background: var(--maroon);
+  color: var(--cream);
+}
+.btn--danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

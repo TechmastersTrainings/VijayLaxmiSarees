@@ -131,6 +131,26 @@ create policy admins_select_admin on public.admins
   using (public.is_admin());
 
 -- ============================================================
+-- PHASE 2 — enquiries admin + order deletion (idempotent)
+-- Safe to run again; part of the base schema going forward.
+-- ============================================================
+
+alter table public.enquiries
+  add column if not exists status text not null default 'new'
+  check (status in ('new', 'contacted', 'closed'));
+
+drop policy if exists enquiries_update_admin on public.enquiries;
+create policy enquiries_update_admin on public.enquiries
+  for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists orders_delete_admin on public.orders;
+create policy orders_delete_admin on public.orders
+  for delete to authenticated
+  using (public.is_admin());
+
+-- ============================================================
 -- OPTIONAL open fallback (testing only) — uncomment to let
 -- everyone read orders/enquiries too. Remove before going live.
 -- ============================================================

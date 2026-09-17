@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useSeo } from '../hooks/useSeo'
 import { supabase, supabaseConfigured } from '../lib/supabase'
-import { ORDER_STATUSES } from '../lib/orders'
+import { ORDER_STATUSES, ENQUIRY_STATUSES } from '../lib/orders'
 import { formatINR } from '../utils/format'
 import { useCatalog } from '../context/CatalogContext'
 import Icon from '../components/common/Icon'
@@ -63,6 +63,11 @@ export const Admin = () => {
   const [savingId, setSavingId] = useState(null)
   const [savedMsg, setSavedMsg] = useState('')
 
+  const [enquiries, setEnquiries] = useState([])
+  const [enquiriesError, setEnquiriesError] = useState('')
+  const [loadingEnquiries, setLoadingEnquiries] = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+
   useEffect(() => {
     if (!supabaseConfigured) return
     supabase.auth.getSession().then(({ data }) => {
@@ -97,6 +102,22 @@ export const Admin = () => {
     if (session) loadOrders()
   }, [session, loadOrders])
 
+  const loadEnquiries = useCallback(async () => {
+    setLoadingEnquiries(true)
+    setEnquiriesError('')
+    const { data, error } = await supabase
+      .from('enquiries')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error) setEnquiriesError(error.message)
+    else setEnquiries(data || [])
+    setLoadingEnquiries(false)
+  }, [])
+
+  useEffect(() => {
+    if (session) loadEnquiries()
+  }, [session, loadEnquiries])
+
   useEffect(() => {
     const next = {}
     for (const product of catalog.products) {
@@ -125,6 +146,21 @@ export const Admin = () => {
     const { error } = await supabase.from('orders').update({ status }).eq('id', id)
     if (error) setOrdersError(error.message)
     else setOrders((list) => list.map((o) => (o.id === id ? { ...o, status } : o)))
+  }
+
+  const deleteOrder = async (id, label) => {
+    if (!window.confirm(`Delete this order from ${label}? This cannot be undone.`)) return
+    setDeletingId(id)
+    const { error } = await supabase.from('orders').delete().eq('id', id)
+    setDeletingId(null)
+    if (error) setOrdersError(error.message)
+    else setOrders((list) => list.filter((o) => o.id !== id))
+  }
+
+  const updateEnquiryStatus = async (id, status) => {
+    const { error } = await supabase.from('enquiries').update({ status }).eq('id', id)
+    if (error) setEnquiriesError(error.message)
+    else setEnquiries((list) => list.map((e) => (e.id === id ? { ...e, status } : e)))
   }
 
   const updateDraft = (id, key, value) =>
@@ -257,6 +293,15 @@ export const Admin = () => {
           >
             Catalogue
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'enquiries'}
+            className={tab === 'enquiries' ? 'is-active' : ''}
+            onClick={() => setTab('enquiries')}
+          >
+            Enquiries
+          </button>
         </div>
 
         {tab === 'orders' && (
@@ -328,6 +373,14 @@ export const Admin = () => {
                       >
                         <Icon name="whatsapp" size={16} /> Contact
                       </a>
+                      <button
+                        type="button"
+                        className="btn btn--danger btn--sm"
+                        disabled={deletingId === order.id}
+                        onClick={() => deleteOrder(order.id, order.customer_name)}
+                      >
+                        {deletingId === order.id ? 'Deleting…' : 'Delete'}
+                      </button>
                     </div>
                   </article>
                 ))}
@@ -377,6 +430,72 @@ export const Admin = () => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {tab === 'enquiries' && (
+          <div>
+            {enquiriesError && (
+              <Notice icon="info">
+                {enquiriesError.includes('permission')
+                  ? 'Your account is signed in but is not listed as an admin yet. Add your user UID to the public.admins table (see supabase/schema.sql).'
+                  : enquiriesError}
+              </Notice>
+            )}
+            {loadingEnquiries ? (
+              <p className="muted">Loading enquiries…</p>
+            ) : enquiries.length === 0 ? (
+              <div className="empty-state">
+                <Icon name="mail" size={30} />
+                <h3>No enquiries yet</h3>
+                <p>Enquiries from the Enquire buttons will appear here.</p>
+              </div>
+            ) : (
+              <div className="admin-orders">
+                {enquiries.map((enquiry) => (
+                  <article key={enquiry.id} className="admin-order">
+                    <div className="admin-order__top">
+                      <div>
+                        <strong>{enquiry.name || 'Product enquiry'}</strong>
+                        <span className="admin-order__meta">
+                          {formatDate(enquiry.created_at)} · {enquiry.source}
+                          {enquiry.phone && ` · ${enquiry.phone}`}
+                        </span>
+                      </div>
+                      <span className="badge badge--soft">{enquiry.product_id || 'General'}</span>
+                    </div>
+
+                    <p className="admin-order__address">{enquiry.message}</p>
+
+                    <div className="admin-order__foot">
+                      <label>
+                        Status
+                        <select
+                          value={enquiry.status || 'new'}
+                          onChange={(e) => updateEnquiryStatus(enquiry.id, e.target.value)}
+                        >
+                          {ENQUIRY_STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {enquiry.phone && (
+                        <a
+                          className="btn btn--whatsapp btn--sm"
+                          href={`https://wa.me/${enquiry.phone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Icon name="whatsapp" size={16} /> Reply
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

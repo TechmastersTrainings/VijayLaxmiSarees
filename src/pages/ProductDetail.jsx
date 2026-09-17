@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useSeo } from '../hooks/useSeo'
 import { relatedProducts } from '../data/products'
 import { useCatalog } from '../context/CatalogContext'
+import { saveEnquiry } from '../lib/orders'
 import { whatsappMessage } from '../data/business'
 import { formatINR } from '../utils/format'
 import { useCart } from '../context/CartContext'
@@ -143,6 +144,13 @@ export const ProductDetail = () => {
                     href={whatsappMessage(
                       `Hello Sri Vijaylaxmi Silks, I'm interested in "${product.name}". Please share the current price and availability.`
                     )}
+                    onClick={() =>
+                      saveEnquiry({
+                        product_id: product.id,
+                        message: `Interested in "${product.name}". Requesting current price and availability.`,
+                        source: 'product-detail',
+                      })
+                    }
                     variant="whatsapp"
                     style={{ flex: 1 }}
                     target="_blank"

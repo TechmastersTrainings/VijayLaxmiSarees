@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { formatINR, cx } from '../../utils/format'
+import { saveEnquiry } from '../../lib/orders'
 import { whatsappMessage } from '../../data/business'
 import { useCart } from '../../context/CartContext'
 import { useWishlist } from '../../context/WishlistContext'
@@ -47,6 +48,13 @@ export const ProductCard = ({ product, eager = false }) => {
             <a
               className="btn btn--sm btn--whatsapp btn--block"
               href={whatsappMessage(`Hello Sri Vijaylaxmi Silks, I would like to enquire about "${product.name}".`)}
+              onClick={() =>
+                saveEnquiry({
+                  product_id: product.id,
+                  message: `Enquiring about "${product.name}".`,
+                  source: 'product-card',
+                })
+              }
               target="_blank"
               rel="noopener noreferrer"
             >

@@ -32,4 +32,24 @@ export const saveOrder = async ({ customer, items, subtotal, count }) => {
 
 export const ORDER_STATUSES = ['new', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled']
 
+export const ENQUIRY_STATUSES = ['new', 'contacted', 'closed']
+
+/**
+ * Persists a product enquiry (e.g. from the Enquire CTAs) to the enquiries
+ * table. Fire-and-forget: WhatsApp always opens regardless of the result.
+ */
+export const saveEnquiry = async ({ name = null, phone = null, message, product_id = null, source = 'website' } = {}) => {
+  if (!supabaseConfigured) return { ok: false, reason: 'not-configured' }
+  if (!message) return { ok: false, reason: 'empty-message' }
+  const { error } = await supabase.from('enquiries').insert({
+    name: name || null,
+    phone: phone || null,
+    message,
+    product_id: product_id || null,
+    source,
+  })
+  if (error) return { ok: false, reason: error.message }
+  return { ok: true }
+}
+
 export default saveOrder
